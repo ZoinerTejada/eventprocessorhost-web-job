@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -8,12 +7,8 @@ using Microsoft.ServiceBus.Messaging;
 using System.Diagnostics;
 using System.Configuration;
 using Newtonsoft.Json.Linq;
-using Microsoft.Azure.WebJobs.ServiceBus;
-using Microsoft.Azure.WebJobs;
 using Newtonsoft.Json;
 
-using System.Net;
-using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 
 namespace DocDBEventProcessorHostWebJob
@@ -31,32 +26,32 @@ namespace DocDBEventProcessorHostWebJob
         {
             foreach (var eventData in events)
             {
+                try
+                {
+                    var eventBytes = eventData.GetBytes();
+                    var jsonMessage = Encoding.UTF8.GetString(eventBytes);
+                    var evt = JObject.Parse(jsonMessage);
 
-                    try
+                    JToken temp;
+                    TempDataPoint datapoint;
+
+                    if (evt.TryGetValue("temp", out temp))
                     {
-                        var eventBytes = eventData.GetBytes();
-                        var jsonMessage = Encoding.UTF8.GetString(eventBytes);
-                        var evt = JObject.Parse(jsonMessage);
-
-                        JToken temp;
-                        TempDataPoint datapoint;
-
-                        if (evt.TryGetValue("temp", out temp))
-                        {
-                            datapoint = JsonConvert.DeserializeObject<TempDataPoint>(jsonMessage);
-                            var res = await Client.CreateDocumentAsync(UriFactory.CreateDocumentCollectionUri(_docDBName, _docDBCollectionName), datapoint);
-                            Console.WriteLine($"Sent: '{jsonMessage}'  RU cost: {res.RequestCharge}");
-                        }
+                        datapoint = JsonConvert.DeserializeObject<TempDataPoint>(jsonMessage);
+                        var res = await Client.CreateDocumentAsync(UriFactory.CreateDocumentCollectionUri(_docDBName, _docDBCollectionName), datapoint);
+                        Console.WriteLine($"Sent: '{jsonMessage}'  RU cost: {res.RequestCharge}");
                     }
-                    catch (Exception ex)
-                    {
-                        LogError(ex.Message);
-                    }
+                }
+                catch (Exception ex)
+                {
+                    LogError(ex.Message);
+                }
             }
         }
 
-        DocumentClient _client; 
-        DocumentClient Client {
+        DocumentClient _client;
+        DocumentClient Client
+        {
             get
             {
                 if (_client == null)
@@ -68,7 +63,7 @@ namespace DocDBEventProcessorHostWebJob
                 return _client;
             }
         }
-        
+
 
         private static void LogError(string message)
         {
@@ -79,7 +74,7 @@ namespace DocDBEventProcessorHostWebJob
 
         Task IEventProcessor.OpenAsync(PartitionContext context)
         {
-            
+
             this._checkpointStopWatch = new Stopwatch();
             this._checkpointStopWatch.Start();
 
@@ -88,7 +83,7 @@ namespace DocDBEventProcessorHostWebJob
 
             Console.WriteLine("CachingProcessor initialized. Partition '{0}', Offset '{1}'", context.Lease.PartitionId, context.Lease.Offset);
 
-            return Task.FromResult<object>(null);
+            return Task.CompletedTask;
         }
 
         async Task IEventProcessor.ProcessEventsAsync(PartitionContext context, IEnumerable<EventData> messages)
@@ -100,7 +95,7 @@ namespace DocDBEventProcessorHostWebJob
                 if (_checkpointStopWatch.Elapsed > TimeSpan.FromSeconds(3))
                 {
                     await context.CheckpointAsync();
-                    Console.WriteLine("Checkpoint partition {0} progress.", context.Lease.PartitionId);                   
+                    Console.WriteLine("Checkpoint partition {0} progress.", context.Lease.PartitionId);
 
                     _checkpointStopWatch.Restart();
                 }
@@ -136,5 +131,4 @@ namespace DocDBEventProcessorHostWebJob
             public string deviceId;
         }
     }
-
 }

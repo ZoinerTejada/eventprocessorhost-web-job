@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -8,8 +7,6 @@ using Microsoft.ServiceBus.Messaging;
 using System.Diagnostics;
 using System.Configuration;
 using Newtonsoft.Json.Linq;
-using Microsoft.Azure.WebJobs.ServiceBus;
-using Microsoft.Azure.WebJobs;
 using Newtonsoft.Json;
 using System.Data.SqlClient;
 
@@ -59,8 +56,7 @@ namespace SqlDBEventProcessorHostWebJob
                             new SqlParameter("@temp", datapoint.temp),
                             new SqlParameter("@createDate", datapoint.createDate)
                         };
-
-
+                        
                         try
                         {
                             using (SqlCommand cmd = new SqlCommand(commandText, conn))
@@ -115,7 +111,7 @@ namespace SqlDBEventProcessorHostWebJob
 
             Console.WriteLine("SqlDBProcessor initialized. Partition '{0}', Offset '{1}'", context.Lease.PartitionId, context.Lease.Offset);
 
-            return Task.FromResult<object>(null);
+            return Task.CompletedTask;
         }
 
         async Task IEventProcessor.ProcessEventsAsync(PartitionContext context, IEnumerable<EventData> messages)

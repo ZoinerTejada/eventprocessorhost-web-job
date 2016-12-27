@@ -1,14 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs;
 using System.Configuration;
 using Microsoft.Azure.WebJobs.ServiceBus;
 using Microsoft.ServiceBus.Messaging;
-
-
 
 namespace DocDBEventProcessorHostWebJob
 {
@@ -55,7 +49,6 @@ namespace DocDBEventProcessorHostWebJob
             host.RunAndBlock();
 
             eventProcessorHost.UnregisterEventProcessorAsync().Wait();
-
         }
     }
 }
